@@ -18,7 +18,7 @@ Requirements:
 This plugin is not yet available in the Jenkins plugin "hub", but it will be there soon. Until then, you can install the plugin easily by uploading the binary to Jenkins through Plugin Manager UI.
 
 To do so:
-* Download the binary release here: [parallels-desktop.hpi](https://github.com/Parallels/jenkins-parallels/releases/download/v0.1/parallels-desktop.hpi).
+* Download the binary release here: [parallels-desktop.hpi](https://github.com/jenkinsci/parallels-desktop-plugin/releases/download/v0.2/parallels-desktop.hpi).
 * Go to Manage Jenkins>-Manage Plugins.
 * Switch to the "Advanced" tab.
 * In the "Upload Plugin" section, pick the binary downloaded in the first step and press "Upload".
