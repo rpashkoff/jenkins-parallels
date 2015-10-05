@@ -19,7 +19,7 @@ This plugin is not yet available in the Jenkins plugin "hub", but it will be the
 
 To do so:
 * Download the binary release here: [parallels-desktop.hpi](https://github.com/jenkinsci/parallels-desktop-plugin/releases/download/v0.2/parallels-desktop.hpi).
-* Go to Manage Jenkins>-Manage Plugins.
+* Go to Manage Jenkins->Manage Plugins.
 * Switch to the "Advanced" tab.
 * In the "Upload Plugin" section, pick the binary downloaded in the first step and press "Upload".
 
@@ -61,4 +61,4 @@ A: This is a known problem that we are working on. In the meantime, your changes
 ## Bugs, Pull Requests and Contacts ##
 
 Feel free to file bugs or change requests here:
-https://github.com/Parallels/jenkins-parallels
+https://github.com/jenkinsci/parallels-desktop-plugin
