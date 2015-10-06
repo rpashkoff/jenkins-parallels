@@ -13,16 +13,6 @@ Requirements:
 * [Jenkins LTS](https://jenkins-ci.org/changelog-stable), 1.609.2 or later. Previous versions may work, but are not tested
 * [Parallels Desktop 11](http://www.parallels.com/products/desktop/) Pro or Business edition
 
-## Installation ##
-
-This plugin is not yet available in the Jenkins plugin "hub", but it will be there soon. Until then, you can install the plugin easily by uploading the binary to Jenkins through Plugin Manager UI.
-
-To do so:
-* Download the binary release here: [parallels-desktop.hpi](https://github.com/jenkinsci/parallels-desktop-plugin/releases/download/v0.2/parallels-desktop.hpi).
-* Go to Manage Jenkins->Manage Plugins.
-* Switch to the "Advanced" tab.
-* In the "Upload Plugin" section, pick the binary downloaded in the first step and press "Upload".
-
 ## Configuration ##
 
 First you must configure a host machine on which Parallels Desktop is installed. Enable "Remote Login" in OS X "Sharing" settings to allow incoming SSH connections.
@@ -51,12 +41,6 @@ Then make sure that you have Java 1.7.0 or greater on your virtual machines. Oth
 Now in any of the build jobs you can set Labels to one of those you configured in your VMs during the Slave Configuration step.
 
 When your job is scheduled and there are not enough executors to perform the build, the plugin will find a suitable virtual machine, start it, and use it to build the job. Then after approximately 1 minute of inactivity the VM will be stopped.
-
-## FAQ/Troubleshooting ##
-
-Q: The "Host" field in the Cloud configuration goes blank after I save and re-open the Jenkins configuration.
-
-A: This is a known problem that we are working on. In the meantime, your changes are being saved properly, but just not being displayed.
 
 ## Bugs, Pull Requests and Contacts ##
 
