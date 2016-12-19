@@ -36,6 +36,12 @@ THE SOFTWARE.
 		<f:entry name="useAsBuilder" title="${%Use host slave for build tasks}" field="useConnectorAsBuilder">
 			<f:checkbox/>
 		</f:entry>
+		<f:entry name="suspendVMManagement" title="${%Suspend Cloud VM management}" field="suspendVMManagement">
+			<f:checkbox/>
+		</f:entry>
+         <f:entry name="maxVMCount" title="${%Max running VMs in cloud}" field="maxVMCount">
+            <f:textbox />
+        </f:entry>
 		<f:dropdownList name="pdLauncher" title="${%Secondary launch method}"
 				help="${descriptor.getHelpFile('launcher')}">
 			<j:forEach var="d" items="${h.getComputerLauncherDescriptors()}" varStatus="loop">

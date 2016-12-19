@@ -51,11 +51,14 @@ public final class ParallelsDesktopCloud extends Cloud
 	private final ComputerLauncher pdLauncher;
 	private final String remoteFS;
 	private final boolean useConnectorAsBuilder;
-	private transient ParallelsDesktopConnectorSlave connectorSlave;
+    private final boolean suspendVMManagement;
+    private final int maxVMCount;
+    private transient ParallelsDesktopConnectorSlave connectorSlave;
 
 	@DataBoundConstructor
 	public ParallelsDesktopCloud(String name, String remoteFS, ComputerLauncher pdLauncher,
-			boolean useConnectorAsBuilder, List<ParallelsDesktopVM> vms)
+			boolean useConnectorAsBuilder, List<ParallelsDesktopVM> vms, boolean suspendVMManagement,
+            int maxVMCount )
 	{
 		super(name);
 		this.remoteFS = remoteFS;
@@ -65,13 +68,29 @@ public final class ParallelsDesktopCloud extends Cloud
 			this.vms = vms;
 		this.pdLauncher = pdLauncher;
 		this.useConnectorAsBuilder = useConnectorAsBuilder;
+        this.maxVMCount = maxVMCount;
+        this.suspendVMManagement = suspendVMManagement;
 	}
+
+    protected boolean canProvisionAny() {
+        if ( suspendVMManagement ) return false;
+        int vmCount = 0;
+        for( final ParallelsDesktopVM vm : vms ) {
+            if (vm.isProvisioned()) {
+                vmCount++;
+            }
+        }
+        return vmCount < maxVMCount;
+    }
 
 	@Override
 	public Collection<NodeProvisioner.PlannedNode> provision(Label label, int excessWorkload)
 	{
 		LOGGER.log(Level.SEVERE, "Going to provision " + excessWorkload + " executors");
 		Collection<NodeProvisioner.PlannedNode> result = new ArrayList<NodeProvisioner.PlannedNode>();
+        if (!canProvisionAny()) {
+            return result;
+        }
 		final ParallelsDesktopConnectorSlaveComputer connector = getConnector();
 		for (int i = 0; (i < vms.size()) && (excessWorkload > 0); i++)
 		{
@@ -126,7 +145,7 @@ public final class ParallelsDesktopCloud extends Cloud
 	@Override
 	public boolean canProvision(Label label)
 	{
-		if (label != null)
+		if (label != null && canProvisionAny())
 		{
 			for (ParallelsDesktopVM vm : vms)
 			{
