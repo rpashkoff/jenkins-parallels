@@ -45,6 +45,7 @@ import net.sf.json.JSONSerializer;
 public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudComputer<ParallelsDesktopConnectorSlave>
 {
 	private static final ParallelsLogger LOGGER = ParallelsLogger.getLogger("PDConnectorSlaveComputer");
+	private int numSlavesRunning = 0;
 
 	public ParallelsDesktopConnectorSlaveComputer(ParallelsDesktopConnectorSlave slave)
 	{
@@ -118,6 +119,11 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		{
 			LOGGER.log(Level.SEVERE, "Error: %s", ex);
 		}
+		if (vm.getPostBuildCommand() != null)
+		{
+			++numSlavesRunning;
+			ParallelsDesktopRestartListener.get().setReadyToRestart(false);
+		}
 		return new ParallelsDesktopVMSlave(vm, this);
 	}
 
@@ -135,6 +141,9 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 			RunVmCallable command = new RunVmCallable(action, vm.getVmid());
 			String res = forceGetChannel().call(command);
 			LOGGER.log(Level.SEVERE, "Result: %s", res);
+			if (numSlavesRunning > 0)
+				--numSlavesRunning;
+			ParallelsDesktopRestartListener.get().setReadyToRestart(numSlavesRunning == 0);
 		}
 		catch (Exception ex)
 		{
