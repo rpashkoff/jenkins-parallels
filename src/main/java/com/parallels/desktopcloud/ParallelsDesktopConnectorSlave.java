@@ -51,7 +51,7 @@ public class ParallelsDesktopConnectorSlave extends AbstractCloudSlave implement
 			throws IOException, Descriptor.FormException
 	{
 		super(name, "", remoteFS, 1, Mode.NORMAL, labelString, launcher,
-				useAsBuilder ? new RetentionStrategy.Always() : new RetentionStrategy.Demand(1, 1),
+				new RetentionStrategy.Always(),
 				new ArrayList<NodeProperty<?>>());
 		this.owner = owner;
 		this.useAsBuilder = useAsBuilder;
