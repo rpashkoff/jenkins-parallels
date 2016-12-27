@@ -76,7 +76,7 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 
 	private String getVmIPAddress(String vmId) throws Exception
 	{
-		int TIMEOUT = 60;
+		int TIMEOUT = 180;
 		for (int i = 0; i < TIMEOUT; ++i)
 		{
 			RunVmCallable command = new RunVmCallable("list", "-f", "--json", vmId);
