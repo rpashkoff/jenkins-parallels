@@ -48,15 +48,17 @@ public final class ParallelsDesktopCloud extends Cloud
 
 	private final List<ParallelsDesktopVM> vms;
 	private final ComputerLauncher pdLauncher;
+	private final String labelString;
 	private final String remoteFS;
 	private final boolean useConnectorAsBuilder;
 	private transient ParallelsDesktopConnectorSlave connectorSlave;
 
 	@DataBoundConstructor
-	public ParallelsDesktopCloud(String name, String remoteFS, ComputerLauncher pdLauncher,
+	public ParallelsDesktopCloud(String name, String labelString, String remoteFS, ComputerLauncher pdLauncher,
 			boolean useConnectorAsBuilder, List<ParallelsDesktopVM> vms)
 	{
 		super(name);
+		this.labelString = labelString;
 		this.remoteFS = remoteFS;
 		if (vms == null)
 			this.vms = Collections.emptyList();
@@ -105,7 +107,7 @@ public final class ParallelsDesktopCloud extends Cloud
 			if (connectorSlave == null)
 			{
 				String slaveName = name + " host slave";
-				connectorSlave = new ParallelsDesktopConnectorSlave(this, slaveName, remoteFS, pdLauncher, useConnectorAsBuilder);
+				connectorSlave = new ParallelsDesktopConnectorSlave(this, slaveName, labelString, remoteFS, pdLauncher, useConnectorAsBuilder);
 				Jenkins.getInstance().addNode(connectorSlave);
 			}
 			return (ParallelsDesktopConnectorSlaveComputer)connectorSlave.toComputer();
@@ -144,6 +146,11 @@ public final class ParallelsDesktopCloud extends Cloud
 	public ComputerLauncher getPdLauncher()
 	{
 		return pdLauncher;
+	}
+
+	public String getLabelString()
+	{
+		return labelString;
 	}
 
 	public String getRemoteFS()

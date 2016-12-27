@@ -46,11 +46,11 @@ public class ParallelsDesktopConnectorSlave extends AbstractCloudSlave implement
 	private final transient boolean useAsBuilder;
 	
 	@DataBoundConstructor
-	public ParallelsDesktopConnectorSlave(ParallelsDesktopCloud owner, String name, String remoteFS, 
+	public ParallelsDesktopConnectorSlave(ParallelsDesktopCloud owner, String name, String labelString, String remoteFS,
 			ComputerLauncher launcher, boolean useAsBuilder)
 			throws IOException, Descriptor.FormException
 	{
-		super(name, "", remoteFS, 1, Mode.NORMAL, "", launcher,
+		super(name, "", remoteFS, 1, Mode.NORMAL, labelString, launcher,
 				useAsBuilder ? new RetentionStrategy.Always() : new RetentionStrategy.Demand(1, 1),
 				new ArrayList<NodeProperty<?>>());
 		this.owner = owner;
