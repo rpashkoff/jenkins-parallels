@@ -86,7 +86,7 @@ public final class ParallelsDesktopCloud extends Cloud
 			vm.setSlaveName(slaveName);
 			vm.setProvisioned(true);
 			--excessWorkload;
-			result.add(new NodeProvisioner.PlannedNode(slaveName,
+			NodeProvisioner.PlannedNode vmNode = new NodeProvisioner.PlannedNode(slaveName,
 				Computer.threadPoolForRemoting.submit(new Callable<Node>()
 				{
 					@Override
@@ -95,7 +95,9 @@ public final class ParallelsDesktopCloud extends Cloud
 						connector.checkVmExists(vmId);
 						return connector.createSlaveOnVM(vm);
 					}
-				}), 1));
+				}), 1);
+			if (vmNode != null)
+				result.add(vmNode);
 		}
 		return result;
 	}

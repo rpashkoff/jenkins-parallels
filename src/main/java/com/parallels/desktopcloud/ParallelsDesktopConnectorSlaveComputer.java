@@ -114,17 +114,18 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 			String ip = getVmIPAddress(vmId);
 			LOGGER.log(Level.SEVERE, "Got IP address for VM %s: %s", vmId, ip);
 			vm.setLauncherIP(ip);
+			if (vm.getPostBuildCommand() != null)
+			{
+				++numSlavesRunning;
+				ParallelsDesktopRestartListener.get().setReadyToRestart(false);
+			}
+			return new ParallelsDesktopVMSlave(vm, this);
 		}
 		catch (Exception ex)
 		{
-			LOGGER.log(Level.SEVERE, "Error: %s", ex);
+			LOGGER.log(Level.SEVERE, "Error: %s\nFailed to create node on VM '%s'", ex, vmId);
 		}
-		if (vm.getPostBuildCommand() != null)
-		{
-			++numSlavesRunning;
-			ParallelsDesktopRestartListener.get().setReadyToRestart(false);
-		}
-		return new ParallelsDesktopVMSlave(vm, this);
+		return null;
 	}
 
 	public void postBuildAction(ParallelsDesktopVM vm)
