@@ -84,6 +84,11 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		return null;
 	}
 
+	private boolean checkResourceLimitsForVm(String vmId)
+	{
+		return true;
+	}
+
 	public Node createSlaveOnVM(ParallelsDesktopVM vm) throws Exception
 	{
 		String vmId = vm.getVmid();
@@ -129,6 +134,11 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 
 			if (state != ParallelsDesktopVM.VMStates.Running)
 			{
+				if (!checkResourceLimitsForVm(vmId))
+				{
+					LOGGER.log(Level.SEVERE, "Not enough resources to start VM %s", vmId);
+					return false;
+				}
 				LOGGER.log(Level.SEVERE, "Starting virtual machine '%s'", vmId);
 				RunVmCallable command = new RunVmCallable("start", vmId);
 				forceGetChannel().call(command);
