@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
+import java.lang.management.ManagementFactory;
 import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -46,10 +47,14 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 {
 	private static final ParallelsLogger LOGGER = ParallelsLogger.getLogger("PDConnectorSlaveComputer");
 	private int numSlavesRunning = 0;
+	private VMResources hostResources;
 
 	public ParallelsDesktopConnectorSlaveComputer(ParallelsDesktopConnectorSlave slave)
 	{
 		super(slave);
+		hostResources = new VMResources(
+				Runtime.getRuntime().availableProcessors(),
+				((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getTotalPhysicalMemorySize());
 	}
 
 	private String getVmIPAddress(String vmId) throws Exception
@@ -84,9 +89,95 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		return null;
 	}
 
+	private long memSizeStringToLong(String memSize)
+	{
+		// XXX It is expected that memSize ends with "Mb"
+		return Long.parseLong(memSize.substring(0, memSize.length() - 2)) * (1 << 20);
+	}
+
+	private static class VMResources
+	{
+		public int cpus;
+		public long ram; // in bytes
+		private static final long mb = 1 << 20;
+		public VMResources(int cpus, long ram)
+		{
+			this.cpus = cpus;
+			this.ram = ram;
+		}
+		public void append(VMResources newResources)
+		{
+			cpus += newResources.cpus;
+			ram += newResources.ram;
+		}
+		public static boolean check(VMResources host, VMResources used, VMResources vm)
+		{
+			if ((vm.cpus + used.cpus) > host.cpus)
+			{
+				LOGGER.log(Level.SEVERE, "Exceeding CPU limit: vm=%d used=%d host=%d",
+						vm.cpus, used.cpus, host.cpus);
+				return false;
+			}
+			if ((vm.ram + used.ram) > host.ram)
+			{
+				LOGGER.log(Level.SEVERE, "Exceeding RAM limit (Mb): vm=%d used=%d host=%d",
+						vm.ram / mb, used.ram / mb, host.ram / mb);
+				return false;
+			}
+			return true;
+		}
+	}
+
+	private VMResources parseVMResources(JSONObject vmInfo)
+	{
+		JSONObject vmHw = vmInfo.getJSONObject("Hardware");
+		JSONObject vmCpuInfo = vmHw.getJSONObject("cpu");
+		int cpus = vmCpuInfo.getInt("cpus");
+		JSONObject vmMemInfo = vmHw.getJSONObject("memory");
+		long ram = memSizeStringToLong(vmMemInfo.getString("size"));
+		JSONObject vmVideoInfo = vmHw.getJSONObject("video");
+		ram += memSizeStringToLong(vmVideoInfo.getString("size"));
+		ram += 500 * (1 << 20); // +500Mb for each VM for virtualization overhead
+		return new VMResources(cpus, ram);
+	}
+
 	private boolean checkResourceLimitsForVm(String vmId)
 	{
-		return true;
+		try
+		{
+			VMResources vmResources = null;
+			VMResources usedResources = new VMResources(0, 1 << 30); // +1Gb for host OS and apps
+			RunVmCallable command = new RunVmCallable("list", "-i", "-a", "--json");
+			String callResult = forceGetChannel().call(command);
+			JSONArray vms = (JSONArray)JSONSerializer.toJSON(callResult);
+			for (int i = 0; i < vms.size(); i++)
+			{
+				JSONObject vmInfo = vms.getJSONObject(i);
+				String vmStatus = vmInfo.getString("State");
+				if (vmStatus.equals("stopped") || vmStatus.equals("suspended"))
+				{
+					if (vmInfo.getString("Name").equals(vmId) || vmInfo.getString("ID").equals(vmId))
+						vmResources = parseVMResources(vmInfo);
+				}
+				else if (!vmStatus.equals("invalid"))
+				{
+					LOGGER.log(Level.FINE , "Accounting VM '%s'", vmInfo.getString("Name"));
+					usedResources.append(parseVMResources(vmInfo));
+				}
+			}
+			if (vmResources == null)
+				// This means that at this point VM of interest is already in running
+				// state, somebody has started it. So there's no meaning to check something.
+				return true;
+			if (!VMResources.check(hostResources, usedResources, vmResources))
+				return false;
+			return true;
+		}
+		catch (Exception ex)
+		{
+			LOGGER.log(Level.SEVERE, "Error: %s\nFailed to check resource limits", ex);
+		}
+		return false;
 	}
 
 	public Node createSlaveOnVM(ParallelsDesktopVM vm) throws Exception
