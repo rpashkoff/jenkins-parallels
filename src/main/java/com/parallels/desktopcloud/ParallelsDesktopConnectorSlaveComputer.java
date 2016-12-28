@@ -107,7 +107,7 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 	public boolean startVM(ParallelsDesktopVM vm)
 	{
 		String vmId = vm.getVmid();
-		LOGGER.log(Level.SEVERE, "Starting virtual machine '%s'", vmId);
+		LOGGER.log(Level.SEVERE, "Looking for virtual machine '%s'...", vmId);
 		try
 		{
 			JSONObject vmInfo = getVMInfo(vmId);
@@ -117,10 +117,22 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 				return false;
 			}
 
+			String vmStatus = vmInfo.getString("State");
+			ParallelsDesktopVM.VMStates state = ParallelsDesktopVM.parseVMState(vmStatus);
+			if (state == null)
+			{
+				LOGGER.log(Level.SEVERE, "Unexpected VM '%s' state: %s", vmId, vmStatus);
+				state = ParallelsDesktopVM.VMStates.Suspended;
+			}
 			if (vm.getPostBuildBehaviorValue() == ParallelsDesktopVM.PostBuildBehaviors.ReturnPrevState)
-				vm.parsePrevState(vmInfo.getString("State"));
-			RunVmCallable command = new RunVmCallable("start", vmId);
-			forceGetChannel().call(command);
+				vm.setPrevVMState(state);
+
+			if (state != ParallelsDesktopVM.VMStates.Running)
+			{
+				LOGGER.log(Level.SEVERE, "Starting virtual machine '%s'", vmId);
+				RunVmCallable command = new RunVmCallable("start", vmId);
+				forceGetChannel().call(command);
+			}
 			vm.setProvisioned(true);
 			return true;
 		}

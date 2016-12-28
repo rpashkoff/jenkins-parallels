@@ -47,7 +47,7 @@ public class ParallelsDesktopVM implements Describable<ParallelsDesktopVM>
 		ReturnPrevState
 	}
 	
-	private enum VMStates
+	public enum VMStates
 	{
 		Suspended,
 		Paused,
@@ -136,21 +136,23 @@ public class ParallelsDesktopVM implements Describable<ParallelsDesktopVM>
 		return postBuildBehavior;
 	}
 	
-	public void parsePrevState(String state)
+	public static VMStates parseVMState(String state)
 	{
 		if ("stopped".equals(state))
-			prevVmState = VMStates.Stopped;
+			return VMStates.Stopped;
 		else if ("paused".equals(state))
-			prevVmState = VMStates.Paused;
+			return VMStates.Paused;
 		else if ("running".equals(state))
-			prevVmState = VMStates.Running;
+			return VMStates.Running;
 		else if ("suspended".equals(state))
-			prevVmState = VMStates.Suspended;
-		else
-		{
-			LOGGER.log(Level.SEVERE, "Unexpected VM '%s' state: %s", vmid, state);
-			prevVmState = VMStates.Suspended;
-		}
+			return VMStates.Suspended;
+
+		return null;
+	}
+
+	public void setPrevVMState(VMStates state)
+	{
+		prevVmState = state;
 	}
 
 	public String getPostBuildCommand()
