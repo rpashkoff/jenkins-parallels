@@ -87,8 +87,26 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 	public Node createSlaveOnVM(ParallelsDesktopVM vm) throws Exception
 	{
 		String vmId = vm.getVmid();
+		LOGGER.log(Level.SEVERE, "Waiting for IP...");
+		String ip = getVmIPAddress(vmId);
+		LOGGER.log(Level.SEVERE, "Got IP address for VM %s: %s", vmId, ip);
+		vm.setLauncherIP(ip);
+		if (vm.getPostBuildCommand() != null)
+		{
+			++numSlavesRunning;
+			ParallelsDesktopRestartListener.get().setReadyToRestart(false);
+		}
+
 		String slaveName = vm.getSlaveName();
-		LOGGER.log(Level.SEVERE, "Starting slave '%s'", slaveName);
+		LOGGER.log(Level.FINE, "Starting slave '%s'", slaveName);
+		Node n = new ParallelsDesktopVMSlave(vm, this);
+		LOGGER.log(Level.SEVERE, "Slave %s provisioned.", slaveName);
+		return n;
+	}
+
+	public boolean startVM(ParallelsDesktopVM vm)
+	{
+		String vmId = vm.getVmid();
 		LOGGER.log(Level.SEVERE, "Starting virtual machine '%s'", vmId);
 		try
 		{
@@ -96,32 +114,25 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 			if (vmInfo == null)
 			{
 				LOGGER.log(Level.SEVERE, "Failed to start virtual machine '%s': no such VM", vmId);
-				return null;
+				return false;
 			}
 
 			if (vm.getPostBuildBehaviorValue() == ParallelsDesktopVM.PostBuildBehaviors.ReturnPrevState)
 				vm.parsePrevState(vmInfo.getString("State"));
 			RunVmCallable command = new RunVmCallable("start", vmId);
 			forceGetChannel().call(command);
-			LOGGER.log(Level.SEVERE, "Waiting for IP...");
-			String ip = getVmIPAddress(vmId);
-			LOGGER.log(Level.SEVERE, "Got IP address for VM %s: %s", vmId, ip);
-			vm.setLauncherIP(ip);
-			if (vm.getPostBuildCommand() != null)
-			{
-				++numSlavesRunning;
-				ParallelsDesktopRestartListener.get().setReadyToRestart(false);
-			}
-			return new ParallelsDesktopVMSlave(vm, this);
+			vm.setProvisioned(true);
+			return true;
 		}
 		catch (Exception ex)
 		{
-			LOGGER.log(Level.SEVERE, "Error: %s\nFailed to create node on VM '%s'", ex, vmId);
+			LOGGER.log(Level.SEVERE, "Error: %s\nFailed to start VM '%s'", ex, vmId);
 		}
-		return null;
+		stopVM(vm);
+		return false;
 	}
 
-	public void postBuildAction(ParallelsDesktopVM vm)
+	private void stopVM(ParallelsDesktopVM vm)
 	{
 		try
 		{
@@ -138,11 +149,17 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 			if (numSlavesRunning > 0)
 				--numSlavesRunning;
 			ParallelsDesktopRestartListener.get().setReadyToRestart(numSlavesRunning == 0);
+			vm.setProvisioned(false);
 		}
 		catch (Exception ex)
 		{
 			LOGGER.log(Level.SEVERE, "Error: %s", ex);
 		}
+	}
+
+	public void postBuildAction(ParallelsDesktopVM vm)
+	{
+		stopVM(vm);
 	}
 	
 	public Channel forceGetChannel() throws InterruptedException, ExecutionException

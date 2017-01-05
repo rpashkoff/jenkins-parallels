@@ -81,12 +81,13 @@ public final class ParallelsDesktopCloud extends Cloud
 				continue;
 			if (!label.matches(Label.parse(vm.getLabels())))
 				continue;
+			if (!connector.startVM(vm))
+				continue;
 			final String vmId = vm.getVmid();
 			final String slaveName = name + " " + vmId;
 			vm.setSlaveName(slaveName);
-			vm.setProvisioned(true);
 			--excessWorkload;
-			NodeProvisioner.PlannedNode vmNode = new NodeProvisioner.PlannedNode(slaveName,
+			result.add(new NodeProvisioner.PlannedNode(slaveName,
 				Computer.threadPoolForRemoting.submit(new Callable<Node>()
 				{
 					@Override
@@ -94,9 +95,7 @@ public final class ParallelsDesktopCloud extends Cloud
 					{
 						return connector.createSlaveOnVM(vm);
 					}
-				}), 1);
-			if (vmNode != null)
-				result.add(vmNode);
+				}), 1));
 		}
 		return result;
 	}
