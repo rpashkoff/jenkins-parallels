@@ -274,6 +274,22 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 	{
 		stopVM(vm);
 	}
+
+	private static final class PrlCtlFailedException extends Exception
+	{
+		private static String formatMessage(int rc, String output)
+		{
+			String msg = String.format("prlctl execution failed with code %d", rc);
+			if (!output.isEmpty())
+				msg += String.format(" , output:\n%s", output);
+			return msg;
+		}
+
+		private PrlCtlFailedException(int rc, String output)
+		{
+			super(formatMessage(rc, output));
+		}
+	}
 	
 	public Channel forceGetChannel() throws InterruptedException, ExecutionException
 	{
@@ -286,7 +302,7 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		return channel;
 	}
 
-	private static final class RunVmCallable extends MasterToSlaveCallable<String, IOException>
+	private static final class RunVmCallable extends MasterToSlaveCallable<String, Exception>
 	{
 		private static final String cmd = "/usr/local/bin/prlctl";
 		private final String[] params;
@@ -297,7 +313,7 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		}
 
 		@Override
-		public String call() throws IOException
+		public String call() throws IOException, PrlCtlFailedException
 		{
 			List<String> cmds = new ArrayList<String>();
 			cmds.add(cmd);
@@ -316,14 +332,17 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 			{
 				result += line;
 			}
+			int rc = 0;
 			try
 			{
-				pr.waitFor();
+				rc = pr.waitFor();
 			}
 			catch (InterruptedException ex)
 			{
 				LOGGER.log(Level.SEVERE, "Error: %s", ex.toString());
 			}
+			if (rc != 0)
+				throw new PrlCtlFailedException(rc, result);
 			return result;
 		}
 	}
