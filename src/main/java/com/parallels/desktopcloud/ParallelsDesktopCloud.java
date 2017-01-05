@@ -92,7 +92,6 @@ public final class ParallelsDesktopCloud extends Cloud
 					@Override
 					public Node call() throws Exception
 					{
-						connector.checkVmExists(vmId);
 						return connector.createSlaveOnVM(vm);
 					}
 				}), 1);

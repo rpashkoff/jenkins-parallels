@@ -52,28 +52,6 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		super(slave);
 	}
 
-	public boolean checkVmExists(String vmId)
-	{
-		try
-		{
-			RunVmCallable command = new RunVmCallable("list", "-i", "--json");
-			String callResult = forceGetChannel().call(command);
-			JSONArray vms = (JSONArray)JSONSerializer.toJSON(callResult);
-			for (int i = 0; i < vms.size(); i++)
-			{
-				JSONObject vmInfo = vms.getJSONObject(i);
-				if (vmId.equals(vmInfo.getString("ID")) || vmId.equals(vmInfo.getString("Name")))
-					return true;
-			}
-			return true;
-		}
-		catch (Exception ex)
-		{
-			LOGGER.log(Level.SEVERE, "Error: %s", ex);
-		}
-		return false;
-	}
-
 	private String getVmIPAddress(String vmId) throws Exception
 	{
 		int TIMEOUT = 180;
@@ -92,6 +70,20 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		throw new Exception("Failed to get IP for VM '" + vmId + "'");
 	}
 
+	private JSONObject getVMInfo(String vmId) throws Exception
+	{
+		RunVmCallable command = new RunVmCallable("list", "-i", "--json");
+		String callResult = forceGetChannel().call(command);
+		JSONArray vms = (JSONArray)JSONSerializer.toJSON(callResult);
+		for (int i = 0; i < vms.size(); i++)
+		{
+			JSONObject vmInfo = vms.getJSONObject(i);
+			if (vmId.equals(vmInfo.getString("ID")) || vmId.equals(vmInfo.getString("Name")))
+				return vmInfo;
+		}
+		return null;
+	}
+
 	public Node createSlaveOnVM(ParallelsDesktopVM vm) throws Exception
 	{
 		String vmId = vm.getVmid();
@@ -100,14 +92,15 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		LOGGER.log(Level.SEVERE, "Starting virtual machine '%s'", vmId);
 		try
 		{
-			if (vm.getPostBuildBehaviorValue() == ParallelsDesktopVM.PostBuildBehaviors.ReturnPrevState)
+			JSONObject vmInfo = getVMInfo(vmId);
+			if (vmInfo == null)
 			{
-				RunVmCallable command = new RunVmCallable("list", "-f", "--json", vmId);
-				String callResult = forceGetChannel().call(command);
-				JSONArray vms = (JSONArray)JSONSerializer.toJSON(callResult);
-				JSONObject vmInfo = vms.getJSONObject(0);
-				vm.parsePrevState(vmInfo.getString("status"));
+				LOGGER.log(Level.SEVERE, "Failed to start virtual machine '%s': no such VM", vmId);
+				return null;
 			}
+
+			if (vm.getPostBuildBehaviorValue() == ParallelsDesktopVM.PostBuildBehaviors.ReturnPrevState)
+				vm.parsePrevState(vmInfo.getString("State"));
 			RunVmCallable command = new RunVmCallable("start", vmId);
 			forceGetChannel().call(command);
 			LOGGER.log(Level.SEVERE, "Waiting for IP...");
