@@ -45,8 +45,6 @@ public class ParallelsDesktopCloudRetentionStrategy extends RetentionStrategy<Pa
 	public long check(ParallelsDesktopVMSlaveComputer c)
 	{
 		LOGGER.log(Level.SEVERE, "Check VM computer %s", c.getName());
-		if (c.isOffline())
-			return 1;
 		if (c.isIdle())
 		{
 			try
