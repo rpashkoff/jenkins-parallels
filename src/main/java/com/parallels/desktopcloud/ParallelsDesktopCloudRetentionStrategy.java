@@ -26,6 +26,7 @@ package com.parallels.desktopcloud;
 
 import hudson.slaves.RetentionStrategy;
 import java.util.logging.Level;
+import java.util.concurrent.locks.ReentrantLock;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -34,31 +35,42 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class ParallelsDesktopCloudRetentionStrategy extends RetentionStrategy<ParallelsDesktopVMSlaveComputer>
 {
 	private static final ParallelsLogger LOGGER = ParallelsLogger.getLogger("PDCloudRetentionStrategy");
+	private transient ReentrantLock checkLock;
 
 	@DataBoundConstructor
 	public ParallelsDesktopCloudRetentionStrategy()
 	{
 		super();
+		checkLock = new ReentrantLock();
 	}
 
 	@Override
 	public long check(ParallelsDesktopVMSlaveComputer c)
 	{
-		LOGGER.log(Level.SEVERE, "Check VM computer %s", c.getName());
-		if (c.isIdle())
+		if (!checkLock.tryLock())
+			return 1;
+		try
 		{
-			try
+			LOGGER.log(Level.SEVERE, "Check VM computer %s", c.getName());
+			if (c.isIdle())
 			{
-				LOGGER.log(Level.SEVERE, "Disconnecting computer...");
-				c.disconnect(null).get();
-				c.getNode().terminate();
+				try
+				{
+					LOGGER.log(Level.SEVERE, "Disconnecting computer...");
+					c.disconnect(null).get();
+					c.getNode().terminate();
+				}
+				catch (Exception e)
+				{
+					LOGGER.log(Level.SEVERE, "Error: %s", e);
+				}
 			}
-			catch (Exception e)
-			{
-				LOGGER.log(Level.SEVERE, "Error: %s", e);
-			}
+			return 1;
 		}
-		return 1;
+		finally
+		{
+			checkLock.unlock();
+		}
 	}
 
 	@Override
