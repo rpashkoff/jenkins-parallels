@@ -37,6 +37,9 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.lang.management.ManagementFactory;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.JMException;
 import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -49,12 +52,29 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 	private int numSlavesRunning = 0;
 	private VMResources hostResources;
 
+	private static long getHostPhysicalMemory()
+	{
+		try
+		{
+			MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+			Object attribute = server.getAttribute(new ObjectName("java.lang","type","OperatingSystem"), "TotalPhysicalMemorySize");
+			return (Long)attribute;
+		}
+		catch (JMException e)
+		{
+			LOGGER.log(Level.SEVERE, "Failed to get host RAM size: %s", e);
+			return Long.MAX_VALUE;
+		}
+	}
+
 	public ParallelsDesktopConnectorSlaveComputer(ParallelsDesktopConnectorSlave slave)
 	{
 		super(slave);
-		hostResources = new VMResources(
-				Runtime.getRuntime().availableProcessors(),
-				((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getTotalPhysicalMemorySize());
+
+		int cpus = Runtime.getRuntime().availableProcessors();
+		long ram = getHostPhysicalMemory();
+		LOGGER.log(Level.SEVERE, "Host '%s' resources: CPU=%d RAM=%d", getName(), cpus, ram);
+		hostResources = new VMResources(cpus, ram);
 	}
 
 	private String getVmIPAddress(String vmId) throws Exception
