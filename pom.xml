@@ -28,7 +28,7 @@ THE SOFTWARE.
 	<parent>
 		<groupId>org.jenkins-ci.plugins</groupId>
 		<artifactId>plugin</artifactId>
-		<version>1.580.1</version>
+		<version>2.2</version>
 	</parent>
 	<groupId>com.parallels</groupId>
 	<artifactId>parallels-desktop</artifactId>
@@ -58,6 +58,11 @@ THE SOFTWARE.
 		<url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
 	  <tag>HEAD</tag>
   </scm>
+
+	<properties>
+		<jenkins.version>1.651.1</jenkins.version>
+		<findbugs.failOnError>false</findbugs.failOnError>
+	</properties>
 
 	<repositories>
 		<repository>
