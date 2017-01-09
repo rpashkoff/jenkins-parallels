@@ -36,6 +36,7 @@ public class ParallelsDesktopCloudRetentionStrategy extends RetentionStrategy<Pa
 {
 	private static final ParallelsLogger LOGGER = ParallelsLogger.getLogger("PDCloudRetentionStrategy");
 	private transient ReentrantLock checkLock;
+	private static final long IDLE_TIMEOUT = 2 * 60 * 1000; // 2 minutes
 
 	@DataBoundConstructor
 	public ParallelsDesktopCloudRetentionStrategy()
@@ -51,8 +52,9 @@ public class ParallelsDesktopCloudRetentionStrategy extends RetentionStrategy<Pa
 			return 1;
 		try
 		{
-			LOGGER.log(Level.SEVERE, "Check VM computer %s", c.getName());
-			if (c.isIdle())
+			final long idleMillis = System.currentTimeMillis() - c.getIdleStartMilliseconds();
+			LOGGER.log(Level.SEVERE, "Check VM computer %s: idle=%b time=%d", c.getName(), c.isIdle(), idleMillis);
+			if (idleMillis > IDLE_TIMEOUT)
 			{
 				try
 				{
