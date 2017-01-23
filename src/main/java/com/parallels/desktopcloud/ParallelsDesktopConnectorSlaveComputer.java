@@ -49,7 +49,7 @@ import net.sf.json.JSONSerializer;
 public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudComputer<ParallelsDesktopConnectorSlave>
 {
 	private static final ParallelsLogger LOGGER = ParallelsLogger.getLogger("PDConnectorSlaveComputer");
-	private int numSlavesRunning = 0;
+	private int numSlavesToStop = 0;
 	private VMResources hostResources;
 
 	private static long getHostPhysicalMemory()
@@ -207,12 +207,6 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		String ip = getVmIPAddress(vmId);
 		LOGGER.log(Level.SEVERE, "Got IP address for VM %s: %s", vmId, ip);
 		vm.setLauncherIP(ip);
-		if (vm.getPostBuildCommand() != null)
-		{
-			++numSlavesRunning;
-			ParallelsDesktopRestartListener.get().setReadyToRestart(false);
-		}
-
 		String slaveName = vm.getSlaveName();
 		LOGGER.log(Level.FINE, "Starting slave '%s'", slaveName);
 		Node n = new ParallelsDesktopVMSlave(vm, this);
@@ -254,6 +248,8 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 				RunVmCallable command = new RunVmCallable("start", vmId);
 				forceGetChannel().call(command);
 			}
+			if (vm.getPostBuildCommand() != null)
+				++numSlavesToStop;
 			vm.setProvisioned(true);
 			return true;
 		}
@@ -279,9 +275,8 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 			RunVmCallable command = new RunVmCallable(action, vm.getVmid());
 			String res = forceGetChannel().call(command);
 			LOGGER.log(Level.SEVERE, "Result: %s", res);
-			if (numSlavesRunning > 0)
-				--numSlavesRunning;
-			ParallelsDesktopRestartListener.get().setReadyToRestart(numSlavesRunning == 0);
+			if (numSlavesToStop > 0)
+				--numSlavesToStop;
 			vm.setProvisioned(false);
 		}
 		catch (Exception ex)
@@ -293,6 +288,13 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 	public void postBuildAction(ParallelsDesktopVM vm)
 	{
 		stopVM(vm);
+	}
+
+	public boolean isReadyToRestart()
+	{
+		if (isOffline())
+			return true;
+		return numSlavesToStop == 0;
 	}
 
 	private static final class PrlCtlFailedException extends Exception
