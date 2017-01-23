@@ -26,21 +26,26 @@ package com.parallels.desktopcloud;
 
 import hudson.Extension;
 import hudson.model.RestartListener;
+import hudson.model.Computer;
+import jenkins.model.Jenkins;
+
 
 @Extension
 public class ParallelsDesktopRestartListener extends RestartListener
 {
-	public boolean readyToRestart = true;
-
-	public void setReadyToRestart(boolean readyToRestart)
-	{
-		this.readyToRestart = readyToRestart;
-	}
-
 	@Override
 	public boolean isReadyToRestart()
 	{
-		return readyToRestart;
+		for (Computer c: Jenkins.getInstance().getComputers())
+		{
+			if (c instanceof ParallelsDesktopConnectorSlaveComputer)
+			{
+				ParallelsDesktopConnectorSlaveComputer pdc = (ParallelsDesktopConnectorSlaveComputer)c;
+				if (!pdc.isReadyToRestart())
+					return false;
+			}
+		}
+		return true;
 	}
 
 	public static ParallelsDesktopRestartListener get()
