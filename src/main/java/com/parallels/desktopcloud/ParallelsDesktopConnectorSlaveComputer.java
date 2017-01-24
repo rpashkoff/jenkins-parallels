@@ -31,6 +31,7 @@ import hudson.slaves.AbstractCloudComputer;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -52,29 +53,9 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 	private int numSlavesToStop = 0;
 	private VMResources hostResources;
 
-	private static long getHostPhysicalMemory()
-	{
-		try
-		{
-			MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-			Object attribute = server.getAttribute(new ObjectName("java.lang","type","OperatingSystem"), "TotalPhysicalMemorySize");
-			return (Long)attribute;
-		}
-		catch (JMException e)
-		{
-			LOGGER.log(Level.SEVERE, "Failed to get host RAM size: %s", e);
-			return Long.MAX_VALUE;
-		}
-	}
-
 	public ParallelsDesktopConnectorSlaveComputer(ParallelsDesktopConnectorSlave slave)
 	{
 		super(slave);
-
-		int cpus = Runtime.getRuntime().availableProcessors();
-		long ram = getHostPhysicalMemory();
-		LOGGER.log(Level.SEVERE, "Host '%s' resources: CPU=%d RAM=%d", getName(), cpus, ram);
-		hostResources = new VMResources(cpus, ram);
 	}
 
 	private String getVmIPAddress(String vmId) throws Exception
@@ -115,8 +96,9 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		return Long.parseLong(memSize.substring(0, memSize.length() - 2)) * (1 << 20);
 	}
 
-	private static class VMResources
+	private static class VMResources implements Serializable
 	{
+		private static final long serialVersionUID = 1L;
 		public int cpus;
 		public long ram; // in bytes
 		private static final long mb = 1 << 20;
@@ -146,6 +128,10 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 			}
 			return true;
 		}
+		public String toLogString()
+		{
+			return String.format("CPU=%d RAM=%d", cpus, ram);
+		}
 	}
 
 	private VMResources parseVMResources(JSONObject vmInfo)
@@ -161,10 +147,47 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		return new VMResources(cpus, ram);
 	}
 
+	private static VMResources getHostResources(Channel ch) throws Exception
+	{
+		return ch.call(new MasterToSlaveCallable<VMResources, Exception>()
+			{
+				private long getHostPhysicalMemory()
+				{
+					try
+					{
+						MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+						Object attribute = server.getAttribute(
+								new ObjectName("java.lang", "type", "OperatingSystem"),
+								"TotalPhysicalMemorySize");
+						return (Long)attribute;
+					}
+					catch (JMException e)
+					{
+						LOGGER.log(Level.SEVERE, "Failed to get host RAM size: %s", e);
+						return Long.MAX_VALUE;
+					}
+				}
+
+				@Override
+				public VMResources call() throws Exception
+				{
+					int cpus = Runtime.getRuntime().availableProcessors();
+					long ram = getHostPhysicalMemory();
+					return new VMResources(cpus, ram);
+				}
+			});
+	}
+
 	private boolean checkResourceLimitsForVm(String vmId)
 	{
 		try
 		{
+			if (hostResources == null)
+			{
+				hostResources = getHostResources(forceGetChannel());
+				LOGGER.log(Level.SEVERE, "Host '%s' resources: %s", getName(), hostResources.toLogString());
+			}
+
 			VMResources vmResources = null;
 			VMResources usedResources = new VMResources(0, 1 << 30); // +1Gb for host OS and apps
 			RunVmCallable command = new RunVmCallable("list", "-i", "-a", "--json");
