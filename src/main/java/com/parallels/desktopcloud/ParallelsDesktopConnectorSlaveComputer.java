@@ -45,6 +45,7 @@ import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
+import org.apache.commons.validator.routines.InetAddressValidator;
 
 
 public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudComputer<ParallelsDesktopConnectorSlave>
@@ -61,6 +62,7 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 	private String getVmIPAddress(String vmId) throws Exception
 	{
 		int TIMEOUT = 180;
+		InetAddressValidator validator = InetAddressValidator.getInstance();
 		for (int i = 0; i < TIMEOUT; ++i)
 		{
 			RunVmCallable command = new RunVmCallable("list", "-f", "--json", vmId);
@@ -69,7 +71,7 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 			JSONArray vms = (JSONArray)JSONSerializer.toJSON(callResult);
 			JSONObject vmInfo = vms.getJSONObject(0);
 			String ip = vmInfo.getString("ip_configured");
-			if (!ip.equals("-"))
+			if (validator.isValidInet4Address(ip))
 				return ip;
 			Thread.sleep(1000);
 		}
@@ -227,9 +229,19 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 	{
 		String vmId = vm.getVmid();
 		LOGGER.log(Level.SEVERE, "Waiting for IP...");
-		String ip = getVmIPAddress(vmId);
-		LOGGER.log(Level.SEVERE, "Got IP address for VM %s: %s", vmId, ip);
-		vm.setLauncherIP(ip);
+		String ip;
+		try
+		{
+			ip = getVmIPAddress(vmId);
+			LOGGER.log(Level.SEVERE, "Got IP address for VM %s: %s", vmId, ip);
+			vm.setLauncherIP(ip);
+		}
+		catch (Exception e)
+		{
+			if (vm.getLauncherIP() == null)
+				throw e;
+		}
+
 		String slaveName = vm.getSlaveName();
 		LOGGER.log(Level.FINE, "Starting slave '%s'", slaveName);
 		Node n = new ParallelsDesktopVMSlave(vm, this);

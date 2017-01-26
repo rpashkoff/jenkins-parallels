@@ -201,6 +201,24 @@ public class ParallelsDesktopVM implements Describable<ParallelsDesktopVM>
 		}
 	}
 
+	String getLauncherIP()
+	{
+		try
+		{
+			Class<?> c = launcher.getClass();
+			Field f = c.getDeclaredField("host");
+			f.setAccessible(true);
+			String ip = (String)f.get(launcher);
+			f.setAccessible(false);
+			return ip;
+		}
+		catch (Exception ex)
+		{
+			LOGGER.log(Level.SEVERE, "Error: %s", ex);
+		}
+		return null;
+	}
+
 	@Override
 	public Descriptor<ParallelsDesktopVM> getDescriptor()
 	{
