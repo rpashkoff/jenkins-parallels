@@ -227,9 +227,19 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 	{
 		String vmId = vm.getVmid();
 		LOGGER.log(Level.SEVERE, "Waiting for IP...");
-		String ip = getVmIPAddress(vmId);
-		LOGGER.log(Level.SEVERE, "Got IP address for VM %s: %s", vmId, ip);
-		vm.setLauncherIP(ip);
+		String ip;
+		try
+		{
+			ip = getVmIPAddress(vmId);
+			LOGGER.log(Level.SEVERE, "Got IP address for VM %s: %s", vmId, ip);
+			vm.setLauncherIP(ip);
+		}
+		catch (Exception e)
+		{
+			if (vm.getLauncherIP() == null)
+				throw e;
+		}
+
 		String slaveName = vm.getSlaveName();
 		LOGGER.log(Level.FINE, "Starting slave '%s'", slaveName);
 		Node n = new ParallelsDesktopVMSlave(vm, this);
