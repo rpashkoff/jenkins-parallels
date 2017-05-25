@@ -25,9 +25,12 @@
 package com.parallels.desktopcloud;
 
 import hudson.model.Node;
+import hudson.model.Computer;
 import hudson.remoting.Channel;
 import hudson.security.Permission;
 import hudson.slaves.AbstractCloudComputer;
+import hudson.slaves.OfflineCause;
+import jenkins.model.Jenkins;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -410,5 +413,32 @@ public class ParallelsDesktopConnectorSlaveComputer extends AbstractCloudCompute
 		if (permission == CONFIGURE)
 			return false;
 		return super.hasPermission(permission);
+	}
+
+	@Override
+	public void setTemporarilyOffline(boolean temporarilyOffline, OfflineCause cause)
+	{
+		try
+		{
+			Jenkins jenkins = Jenkins.getInstance();
+			for (ParallelsDesktopVM vm : this.getNode().getOwner().getVms())
+			{
+				Node slaveNode = jenkins.getNode(vm.getSlaveName());
+				if (slaveNode == null)
+				{
+					continue;
+				}
+				Computer slaveComputer = slaveNode.toComputer();
+				slaveComputer.setTemporarilyOffline(temporarilyOffline, cause);
+			}
+		}
+		catch (NullPointerException ignore)
+		{
+			//noop
+		}
+		finally
+		{
+			super.setTemporarilyOffline(temporarilyOffline, cause);
+		}
 	}
 }

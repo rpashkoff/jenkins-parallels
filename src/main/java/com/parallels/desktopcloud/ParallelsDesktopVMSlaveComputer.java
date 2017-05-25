@@ -47,7 +47,7 @@ public class ParallelsDesktopVMSlaveComputer extends AbstractCloudComputer<Paral
 	@Override
 	public boolean hasPermission(Permission permission)
 	{
-		if (permission == CONFIGURE)
+		if (permission == CONFIGURE || permission == DISCONNECT || permission == CONNECT)
 			return false;
 		return super.hasPermission(permission);
 	}

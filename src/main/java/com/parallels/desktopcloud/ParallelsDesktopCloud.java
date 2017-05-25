@@ -74,6 +74,10 @@ public final class ParallelsDesktopCloud extends Cloud
 		LOGGER.log(Level.SEVERE, "Going to provision %d executors", excessWorkload);
 		Collection<NodeProvisioner.PlannedNode> result = new ArrayList<NodeProvisioner.PlannedNode>();
 		final ParallelsDesktopConnectorSlaveComputer connector = getConnector();
+		if (connector.isOffline())
+		{
+			return result;
+		}
 		for (int i = 0; (i < vms.size()) && (excessWorkload > 0); i++)
 		{
 			final ParallelsDesktopVM vm = vms.get(i);
