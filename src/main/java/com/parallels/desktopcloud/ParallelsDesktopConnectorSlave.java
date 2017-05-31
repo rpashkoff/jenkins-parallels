@@ -57,6 +57,11 @@ public class ParallelsDesktopConnectorSlave extends AbstractCloudSlave implement
 		this.useAsBuilder = useAsBuilder;
 	}
 
+	public ParallelsDesktopCloud getOwner()
+	{
+		return owner;
+	}
+
 	@Override
 	public AbstractCloudComputer createComputer()
 	{
