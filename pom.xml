@@ -32,7 +32,7 @@ THE SOFTWARE.
 	</parent>
 	<groupId>com.parallels</groupId>
 	<artifactId>parallels-desktop</artifactId>
-	<version>0.6-SNAPSHOT</version>
+	<version>0.6</version>
 	<packaging>hpi</packaging>
 
 	<name>Parallels Desktop Cloud</name>
@@ -56,7 +56,7 @@ THE SOFTWARE.
 		<connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
 		<developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
 		<url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
-	  <tag>HEAD</tag>
+	  <tag>parallels-desktop-0.6</tag>
   </scm>
 
 	<properties>
