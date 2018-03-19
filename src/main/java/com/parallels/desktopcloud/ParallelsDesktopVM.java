@@ -65,13 +65,13 @@ public class ParallelsDesktopVM implements Describable<ParallelsDesktopVM>
 	private final String remoteFS;
 	private transient String slaveName;
 	private final ComputerLauncher launcher;
-	private List<NodeProperty<?>> nodeProperties;
+	private ParallelsDesktopNodeProperties nodeProperties;
 	private transient boolean provisioned = false;
 	private PostBuildBehaviors postBuildBehavior;
 	private transient VMStates prevVmState;
 
 	@DataBoundConstructor
-	public ParallelsDesktopVM(String vmid, String labels, String remoteFS, ComputerLauncher launcher, String postBuildBehavior, List<NodeProperty<?>> nodeProperties)
+	public ParallelsDesktopVM(String vmid, String labels, String remoteFS, ComputerLauncher launcher, String postBuildBehavior, ParallelsDesktopNodeProperties nodeProperties)
 	{
 		this.vmid = vmid;
 		this.labels = labels;
@@ -121,12 +121,12 @@ public class ParallelsDesktopVM implements Describable<ParallelsDesktopVM>
 		return slaveName;
 	}
 
-	public List<NodeProperty<?>> getNodeProperties()
+	public ParallelsDesktopNodeProperties getNodeProperties()
 	{
 		return nodeProperties;
 	}
 
-	public void setNodeProperties(List<NodeProperty<?>> nodeProperties)
+	public void setNodeProperties(ParallelsDesktopNodeProperties nodeProperties)
 	{
 		this.nodeProperties = nodeProperties;
 	}
