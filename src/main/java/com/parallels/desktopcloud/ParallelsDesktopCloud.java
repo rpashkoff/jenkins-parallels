@@ -38,26 +38,27 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 
 public final class ParallelsDesktopCloud extends Cloud
 {
-	private static final Logger LOGGER = Logger.getLogger(ParallelsDesktopCloud.class.getName());
+	private static final ParallelsLogger LOGGER = ParallelsLogger.getLogger("PDCloud");
 
 	private final List<ParallelsDesktopVM> vms;
 	private final ComputerLauncher pdLauncher;
+	private final String labelString;
 	private final String remoteFS;
 	private final boolean useConnectorAsBuilder;
 	private transient ParallelsDesktopConnectorSlave connectorSlave;
 
 	@DataBoundConstructor
-	public ParallelsDesktopCloud(String name, String remoteFS, ComputerLauncher pdLauncher,
+	public ParallelsDesktopCloud(String name, String labelString, String remoteFS, ComputerLauncher pdLauncher,
 			boolean useConnectorAsBuilder, List<ParallelsDesktopVM> vms)
 	{
 		super(name);
+		this.labelString = labelString;
 		this.remoteFS = remoteFS;
 		if (vms == null)
 			this.vms = Collections.emptyList();
@@ -70,9 +71,13 @@ public final class ParallelsDesktopCloud extends Cloud
 	@Override
 	public Collection<NodeProvisioner.PlannedNode> provision(Label label, int excessWorkload)
 	{
-		LOGGER.log(Level.SEVERE, "Going to provision " + excessWorkload + " executors");
+		LOGGER.log(Level.SEVERE, "Going to provision %d executors", excessWorkload);
 		Collection<NodeProvisioner.PlannedNode> result = new ArrayList<NodeProvisioner.PlannedNode>();
 		final ParallelsDesktopConnectorSlaveComputer connector = getConnector();
+		if (connector.isOffline())
+		{
+			return result;
+		}
 		for (int i = 0; (i < vms.size()) && (excessWorkload > 0); i++)
 		{
 			final ParallelsDesktopVM vm = vms.get(i);
@@ -80,10 +85,11 @@ public final class ParallelsDesktopCloud extends Cloud
 				continue;
 			if (!label.matches(Label.parse(vm.getLabels())))
 				continue;
+			if (!connector.startVM(vm))
+				continue;
 			final String vmId = vm.getVmid();
 			final String slaveName = name + " " + vmId;
 			vm.setSlaveName(slaveName);
-			vm.setProvisioned(true);
 			--excessWorkload;
 			result.add(new NodeProvisioner.PlannedNode(slaveName,
 				Computer.threadPoolForRemoting.submit(new Callable<Node>()
@@ -91,7 +97,6 @@ public final class ParallelsDesktopCloud extends Cloud
 					@Override
 					public Node call() throws Exception
 					{
-						connector.checkVmExists(vmId);
 						return connector.createSlaveOnVM(vm);
 					}
 				}), 1));
@@ -106,14 +111,14 @@ public final class ParallelsDesktopCloud extends Cloud
 			if (connectorSlave == null)
 			{
 				String slaveName = name + " host slave";
-				connectorSlave = new ParallelsDesktopConnectorSlave(this, slaveName, remoteFS, pdLauncher, useConnectorAsBuilder);
+				connectorSlave = new ParallelsDesktopConnectorSlave(this, slaveName, labelString, remoteFS, pdLauncher, useConnectorAsBuilder);
 				Jenkins.getInstance().addNode(connectorSlave);
 			}
 			return (ParallelsDesktopConnectorSlaveComputer)connectorSlave.toComputer();
 		}
 		catch(Exception ex)
 		{
-			LOGGER.log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, "Error: %s", ex);
 		}
 		return null;
 	}
@@ -145,6 +150,11 @@ public final class ParallelsDesktopCloud extends Cloud
 	public ComputerLauncher getPdLauncher()
 	{
 		return pdLauncher;
+	}
+
+	public String getLabelString()
+	{
+		return labelString;
 	}
 
 	public String getRemoteFS()

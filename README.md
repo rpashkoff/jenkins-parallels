@@ -14,16 +14,6 @@ Requirements:
 * [Jenkins LTS](https://jenkins-ci.org/changelog-stable), 1.609.2 or later.
 * [Parallels Desktop for Mac](https://www.parallels.com/products/desktop/pro/) Pro or Business edition
 
-## Installation ##
-
-This plugin is not yet available in the Jenkins plugin "hub", but it will be there soon. Until then, you can install the plugin easily by uploading the binary to Jenkins through Plugin Manager UI.
-
-To do so:
-* Download the binary release here: [parallels-desktop.hpi](https://github.com/Parallels/jenkins-parallels/releases/download/v0.1/parallels-desktop.hpi).
-* Go to Manage Jenkins>-Manage Plugins.
-* Switch to the "Advanced" tab.
-* In the "Upload Plugin" section, pick the binary downloaded in the first step and press "Upload".
-
 ## Configuration ##
 
 First, you must configure a host machine on which Parallels Desktop is installed. Enable "Remote Login" in macOS "Sharing" settings to allow incoming SSH connections.
@@ -61,5 +51,6 @@ A: This is a known problem that we are working on. In the meantime, your changes
 
 ## Bugs, Pull Requests, and Contacts ##
 
+
 Feel free to file bugs or change requests here:
-https://github.com/Parallels/jenkins-parallels
+https://github.com/jenkinsci/parallels-desktop-plugin

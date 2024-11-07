@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * (c) 2004-2015. Parallels IP Holdings GmbH. All rights reserved.
+ * (c) 2016. Parallels International GmbH. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,31 +24,32 @@
 
 package com.parallels.desktopcloud;
 
-import hudson.security.Permission;
-import hudson.slaves.AbstractCloudComputer;
-import java.util.logging.Level;
+import hudson.Extension;
+import hudson.model.RestartListener;
+import hudson.model.Computer;
+import jenkins.model.Jenkins;
 
 
-public class ParallelsDesktopVMSlaveComputer extends AbstractCloudComputer<ParallelsDesktopVMSlave>
+@Extension
+public class ParallelsDesktopRestartListener extends RestartListener
 {
-	private static final ParallelsLogger LOGGER = ParallelsLogger.getLogger("PDVMSlaveComputer");
-
-	public ParallelsDesktopVMSlaveComputer(ParallelsDesktopVMSlave slave)
+	@Override
+	public boolean isReadyToRestart()
 	{
-		super(slave);
+		for (Computer c: Jenkins.getInstance().getComputers())
+		{
+			if (c instanceof ParallelsDesktopConnectorSlaveComputer)
+			{
+				ParallelsDesktopConnectorSlaveComputer pdc = (ParallelsDesktopConnectorSlaveComputer)c;
+				if (!pdc.isReadyToRestart())
+					return false;
+			}
+		}
+		return true;
 	}
 
-	@Override
-	protected void onRemoved()
+	public static ParallelsDesktopRestartListener get()
 	{
-		LOGGER.log(Level.SEVERE, "!!!!!! ON REMOVED");
-	}
-	
-	@Override
-	public boolean hasPermission(Permission permission)
-	{
-		if (permission == CONFIGURE || permission == DISCONNECT || permission == CONNECT)
-			return false;
-		return super.hasPermission(permission);
+		return RestartListener.all().get(ParallelsDesktopRestartListener.class);
 	}
 }
